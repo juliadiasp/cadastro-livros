@@ -1,6 +1,6 @@
 const express = require("express");
 const exphbs = require("express-handlebars");
-const mysql = require("mysql2");
+const pool = require("./db/conn");
 
 const app = express();
 
@@ -25,9 +25,10 @@ app.post("/books/insertbook", (req, res) => {
   const title = req.body.title;
   const pageqty = req.body.pageqty;
 
-  const sql = `INSERT INTO books (title, pageqty) VALUES ('${title}', '${pageqty}')`;
+  const sql = `INSERT INTO books (??, ??) VALUES (?, ?)`;
+  const data = ["title", "pageqty", title, pageqty];
 
-  conn.query(sql, function (err) {
+  pool.query(sql, data, function (err) {
     if (err) {
       console.log(err);
       return;
@@ -39,7 +40,7 @@ app.post("/books/insertbook", (req, res) => {
 app.get("/books", (req, res) => {
   const sql = "SELECT * FROM BOOKS";
 
-  conn.query(sql, function (err, data) {
+  pool.query(sql, function (err, data) {
     if (err) {
       console.log(err);
       return;
@@ -55,9 +56,12 @@ app.get("/books", (req, res) => {
 
 app.get("/books/:id", (req, res) => {
   const id = req.params.id;
-  const sql = `SELECT * FROM books WHERE id = ${id}`;
 
-  conn.query(sql, function (err, data) {
+  const sql = `SELECT * FROM books WHERE ?? = ?`;
+
+  const data = ["id", id];
+
+  pool.query(sql, data, function (err, data) {
     if (err) {
       console.log(err);
       return;
@@ -69,19 +73,57 @@ app.get("/books/:id", (req, res) => {
   });
 });
 
-const conn = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Migoliver123",
-  database: "nodemysql",
+app.get("/books/edit/:id", (req, res) => {
+  const id = req.params.id;
+
+  const sql = `SELECT * FROM books WHERE ?? = ?`;
+
+  const data = ["id", id];
+
+  pool.query(sql, data, function (err, data) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+
+    const book = data[0];
+
+    res.render("editbook", { book });
+  });
 });
 
-conn.connect(function (err) {
-  if (err) {
-    console.log(err);
-  }
+app.post("/books/updatebook", (req, res) => {
+  const id = req.body.id;
+  const title = req.body.title;
+  const pageqty = req.body.pageqty;
 
-  console.log("Conectou ao MySQL!");
+  const sql = `UPDATE books SET ?? = ?, ?? = ? WHERE ?? = ?`;
+  const data = ["title", title, "pageqty", pageqty, "id", id];
 
-  app.listen(3000);
+  pool.query(sql, data, function (err) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+
+    res.redirect("/books");
+  });
 });
+
+app.post("/books/remove/:id", (req, res) => {
+  const id = req.params.id;
+
+  const sql = `DELETE FROM books WHERE ?? = ?`;
+  const data = ["id", id];
+
+  pool.query(sql, data, function (err) {
+    if (err) {
+      console.log(err);
+      return;
+    }
+
+    res.redirect("/books");
+  });
+});
+
+app.listen(3000);
